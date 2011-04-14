@@ -27,8 +27,8 @@
 	},
 	"response": {
 		"js": {
-			"headers": {"Content-Type": "text/javascrip"},
-			"content": ""
+			"headers": {"Content-Type": "application/x-javascript"},
+			"content": "{}"
 		},
 		"img": {
 			"headers": {"Content-Type": "image/gif", "Content-Length": 43},

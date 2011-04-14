@@ -42,7 +42,7 @@ http.createServer(function (req, res) {
 	}
 
 	var date = new Date();
-	var day = date.getFullYear() + '-' + date.getMonth() + '-' + date.getDate();
+	var day = date.getFullYear() + '-' + twoDigints(date.getMonth() + 1) + '-' + twoDigints(date.getDate());
 	
 	redis.incr(keyPrefix + conf.redis.keyPrefix.total + id);
 	redis.incr(keyPrefix + conf.redis.keyPrefix.byDay + day + ':' + id);
@@ -50,3 +50,10 @@ http.createServer(function (req, res) {
 	
 
 }).listen(conf.web.port, conf.web.host);
+
+function twoDigints(a) {
+	if (a < 10) {
+		a = '0' + a;
+	}
+	return a;
+}
