@@ -1,0 +1,38 @@
+{
+	"redis": {
+		"host": "localhost",
+		"port": "6379",
+		"keyPrefix": {
+			"byDay": "byday:",
+			"total": "total:",
+			"counter": "count:",
+			"redirect": "link"
+		}
+	},
+	"url": {
+		"counter": {
+			"js": "/counter.js",
+			"img": "/counter.gif"
+		},
+		"redirect": "/link"
+		
+	},
+	"web": {
+		"port": 32123,
+		"host": "localhost"
+	},
+	"interface": {
+		"port": 4444,
+		"host": "localhost"
+	},
+	"response": {
+		"js": {
+			"headers": {"Content-Type": "text/javascrip"},
+			"content": ""
+		},
+		"img": {
+			"headers": {"Content-Type": "image/gif", "Content-Length": 43},
+			"fileName": "empty.gif"
+		}
+	}
+}
