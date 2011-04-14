@@ -1,5 +1,6 @@
 var http = require('http');
 var url = require('url');
+var querystring = require('querystring');
 var conf = require('simple-settings').init('settings.json', 'settings.local.json');
 var redis = require("redis").createClient(conf.redis.port, conf.redis.host);
 
@@ -8,7 +9,6 @@ if (conf.response.img.fileName) {
 }
 
 http.createServer(function (req, res) {
-	
 	var query = url.parse(req.url);
 	var id;
 	var keyPrefix;
@@ -21,10 +21,12 @@ http.createServer(function (req, res) {
 			res.end(conf.response.img.content);
 		}
 		
-		id = query.query;
+		id = querystring.parse(query.query).id;
+
 		if (id === undefined) {
 			id = req.headers['referrer'];
 		}
+
 		keyPrefix = conf.redis.keyPrefix.counter;
 	} else if (query.pathname == conf.url.redirect) {
 		res.writeHead(302, {'Location': query.query});
@@ -42,16 +44,13 @@ http.createServer(function (req, res) {
 	}
 
 	var date = new Date();
-	var day = date.getFullYear() + '-' + twoDigints(date.getMonth() + 1) + '-' + twoDigints(date.getDate());
+	var day = date.getFullYear() + '-' + twoDigits(date.getMonth() + 1) + '-' + twoDigits(date.getDate());
 	
 	redis.incr(keyPrefix + conf.redis.keyPrefix.total + id);
 	redis.incr(keyPrefix + conf.redis.keyPrefix.byDay + day + ':' + id);
-	
-	
-
 }).listen(conf.web.port, conf.web.host);
 
-function twoDigints(a) {
+function twoDigits(a) {
 	if (a < 10) {
 		a = '0' + a;
 	}
