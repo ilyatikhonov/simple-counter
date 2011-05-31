@@ -4,16 +4,12 @@
 		"port": "6379",
 		"keyPrefix": {
 			"byDay": "byday:",
-			"total": "total:",
-			"counter": "count:",
-			"redirect": "link:"
+			"total": "total:"
 		}
 	},
 	"url": {
-		"counter": {
-			"js": "/counter.js",
-			"img": "/counter.gif"
-		},
+		"js": "/counter.js",
+		"img": "/counter.gif",
 		"redirect": "/link"
 		
 	},
