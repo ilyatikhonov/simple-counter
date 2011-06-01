@@ -4,7 +4,9 @@
 		"port": "6379",
 		"keyPrefix": {
 			"byDay": "byday:",
-			"total": "total:"
+			"total": "total:",
+			"uniq": "uniq:",
+			"userId": "userid:"
 		}
 	},
 	"url": {
@@ -30,5 +32,11 @@
 			"headers": {"Content-Type": "image/gif", "Content-Length": 43},
 			"fileName": "empty.gif"
 		}
+	},
+	"uniq": {
+		"enabled": true,
+		"cookieName": "cntSessId",
+		"idLength": 8,
+		"expireTime": 2678400
 	}
 }

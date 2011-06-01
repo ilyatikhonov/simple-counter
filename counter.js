@@ -1,8 +1,10 @@
-var http = require('http');
-var url = require('url');
-var querystring = require('querystring');
-var conf = require('simple-settings').init('settings.json', 'settings.local.json');
-var redis = require("redis").createClient(conf.redis.port, conf.redis.host);
+var http = require('http'),
+	url = require('url'),
+	querystring = require('querystring'),
+	conf = require('simple-settings').init('settings.json', 'settings.local.json'),
+	redis = require("redis").createClient(conf.redis.port, conf.redis.host),
+	Cookies = require('cookies');
+
 require('datejs');
 
 if (conf.response.img.fileName) {
@@ -10,6 +12,15 @@ if (conf.response.img.fileName) {
 }
 
 http.createServer(function (req, res) {
+	if (conf.uniq.enabled) {
+		var cookies = new Cookies(req, res);
+		var userId = cookies.get(conf.uniq.cookieName);
+		if (userId === undefined || userId.length != conf.uniq.idLength) {
+			userId = randomString(conf.uniq.idLength);
+			cookies.set(conf.uniq.cookieName, userId, {expires: (new Date).add(conf.uniq.expireTime).seconds()});
+		}
+	}
+
 	var query = url.parse(req.url);
 	if (query.pathname == conf.url.js || query.pathname == conf.url.img) {
 		var response = conf.response.img;
@@ -23,12 +34,40 @@ http.createServer(function (req, res) {
 		res.end();
 	} else {
 		res.writeHead(404, {'Content-Type': 'text/plain'});
-		res.end('Not Found\n');
+		res.end('Not Found');
 		return;
 	}
+
 	var id = querystring.parse(query.query).id || req.headers['referrer'];
 	if (id) {
-		redis.incr(conf.redis.keyPrefix.total + id);
-		redis.incr(conf.redis.keyPrefix.byDay + Date.today().toString('yyyy-MM-dd') + ':' + id);
+		var multi = redis.multi()
+			.incr(conf.redis.keyPrefix.total + id)
+			.incr(conf.redis.keyPrefix.byDay + Date.today().toString('yyyy-MM-dd') + ':' + id);
+		if (userId) {
+			redis.multi()
+				.getset(conf.redis.keyPrefix.userId + id + ':' + userId, '1')
+				.expire(conf.redis.keyPrefix.userId + id + ':' + userId, conf.uniq.expireTime)
+				.exec(function(err, replies) {
+					if (replies[0] != '1') {
+						multi.incr(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.total + id);
+						multi.incr(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay + Date.today().toString('yyyy-MM-dd') + ':' + id);
+					}
+					multi.exec();
+				});
+		} else {
+			multi.exec();
+		}
+		
 	}
 }).listen(conf.web.port, conf.web.host);
+
+function randomString(charsCount){
+	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'; //64 chars, like BASE64
+	var ret = '';
+	while (charsCount > 0) {
+		for (var i = 26; i > 0 && charsCount > 0; i -= 6, charsCount--) {
+			ret+=chars[0x3F & Math.floor(Math.random()*0x100000000) >>> i];
+		}
+	}
+	return ret;
+}
