@@ -6,7 +6,6 @@ It's written in JavaScript for Node.js using Redis
 ## Usage methods
 ### 1x1 transparent GIF image
 	<img src="http://counter.host:port/counter.gif"/>
-or
 	<img src="http://counter.host:port/counter.gif?id=counter_id"/>
 
 
@@ -35,14 +34,17 @@ using jQuery
 
 or dynamic:
 using jQuery
-	<script>
+
+JS:
+
 		$('a.external').click(function() {
 			if (!$(this).data('url-changed')) {
 				 $(this).attr('href', 'http://counter.host:port/link?id=external_link&to=' + $(this).attr('href'));
 				 $(this).data('url-changed', true);
 			}
 		});
-	</script>
+
+HTML:
 	
 	<a href="http://google.com" class="external">google</a>
 	<a href="http://yandex.ru" class="external">yandex</a>
