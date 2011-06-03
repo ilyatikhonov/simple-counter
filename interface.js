@@ -46,16 +46,23 @@ http.createServer(function (req, res) {
 	multi.exec(function(err, values) {
 		var result = {};
 		if (values.length == keys.length) {
-			values.forEach(function(value, i) {
-				result[keys[i][0]] = value;
-			});
+			if (values.length == 1) {
+				result = values[0];
+			} else {
+				values.forEach(function(value, i) {
+					result[keys[i][0]] = value;
+				});
+			}
+		}
+		if (result instanceof Array || result instanceof Object) {
+			result = JSON.stringify(result);
 		}
 		if (query.jsonp_callback) {
 			res.writeHead(200, {'Content-type': 'application/x-javascript'});
-			res.end(query.jsonp_callback + '(\'' + JSON.stringify(result) + '\');');
+			res.end(query.jsonp_callback + '(\'' + result + '\');');
 		} else {
 			res.writeHead(200, {'Content-type': 'text/plain'});
-			res.end(JSON.stringify(result));
+			res.end(result);
 		}
 		
 	});
