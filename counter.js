@@ -43,13 +43,27 @@ http.createServer(function (req, res) {
 		var multi = redis.multi()
 			.incr(conf.redis.keyPrefix.total + id)
 			.incr(conf.redis.keyPrefix.byDay + Date.today().toString('yyyy-MM-dd') + ':' + id);
+
 		if (userId) {
+			var id = conf.redis.keyPrefix.userId + id + ':' + userId;
 			redis.multi()
-				.getset(conf.redis.keyPrefix.userId + id + ':' + userId, '1')
-				.expire(conf.redis.keyPrefix.userId + id + ':' + userId, conf.uniq.expireTime)
+				.getset(id, '1')
+				.expire(id, conf.uniq.expireTime)
 				.exec(function(err, replies) {
+					console.log(replies)
 					if (replies[0] != '1') {
 						multi.incr(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.total + id);
+					}
+					multi.exec();
+				});
+
+			var id = conf.redis.keyPrefix.userId + Date.today().toString('yyyy-MM-dd') + ':' + id + ':' + userId;
+			redis.multi()
+				.getset(id, '1')
+				.expire(id, 86400) //24h
+				.exec(function(err, replies) {
+					console.log(replies)
+					if (replies[0] != '1') {
 						multi.incr(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay + Date.today().toString('yyyy-MM-dd') + ':' + id);
 					}
 					multi.exec();
