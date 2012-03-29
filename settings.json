@@ -25,11 +25,23 @@
 	},
 	"response": {
 		"js": {
-			"headers": {"Content-Type": "application/x-javascript"},
+			"headers": {
+				"Content-Type": "application/x-javascript",
+				"Content-Length": 2,
+				"Cache-Control": "no-store, no-cache, must-revalidate",
+				"Expires": -1,
+				"Pragma": "no-cache"
+			},
 			"content": "{}"
 		},
 		"img": {
-			"headers": {"Content-Type": "image/gif", "Content-Length": 43},
+			"headers": {
+				"Content-Type": "image/gif",
+				"Content-Length": 43,
+				"Cache-Control": "no-store, no-cache, must-revalidate",
+				"Expires": -1,
+				"Pragma": "no-cache"
+			},
 			"fileName": "empty.gif"
 		}
 	},
