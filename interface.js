@@ -74,10 +74,8 @@ http.createServer(function (req, res) {
 					})
 				}
 			}
-			
-			if (result instanceof Array || result instanceof Object) {
-				result = JSON.stringify(result)
-			}
+
+			result = JSON.stringify(result)
 			if (query.jsonp_callback) {
 				res.writeHead(200, {'Content-type': 'application/x-javascript'})
 				res.end(query.jsonp_callback + '(\'' + result + '\')')
