@@ -1,89 +1,121 @@
-var http = require('http');
-var url = require('url');
-var querystring = require('querystring');
-var conf = require('simple-settings').init('settings.json', 'settings.local.json');
-var redis = require("redis").createClient(conf.redis.port, conf.redis.host);
-require('datejs');
+var http = require('http'),
+	url = require('url'),
+	querystring = require('querystring'),
+	conf = require('simple-settings').init('settings.json', 'settings.local.json'),
+	redis = require("redis").createClient(conf.redis.port, conf.redis.host)
+require('datejs')
 
 http.createServer(function (req, res) {
-	var query = querystring.parse(url.parse(req.url).query);
-	if (if404(!query.type || !query.id, res)) return;
-	var keys = [];
-	var id = query.id;
-	query.type = query.type.split(',');
-	if (query.type.indexOf('total') != -1) {
-		keys.push(['total', conf.redis.keyPrefix.total + id]);
-	}
-	if (query.type.indexOf('total-uniq') != -1) {
-		keys.push(['total-uniq', conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.total + id]);
-	}
-	if (query.type.indexOf('today') != -1) {
-		keys.push(['today', conf.redis.keyPrefix.byDay + getToday() + id]);
-	}
-	if (query.type.indexOf('today-uniq') != -1) {
-		keys.push(['today-uniq', conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay + getToday() + id]);
-	}
-	if (query.type.indexOf('week') != -1) {
-		keys.push(['week', getWeek(conf.redis.keyPrefix.byDay, id)]);
-	}
-	if (query.type.indexOf('week-uniq') != -1) {
-		keys.push(['week-uniq', getWeek(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay, id)]);
-	}
+	try {
+		var query = querystring.parse(url.parse(req.url).query)
+		if (!query.type || !query.id) {
+			throw 'You must set "id" and "type"'
+		}
+		var keys = []
+		var ids = query.id.split(',')
+		var types = query.type.split(',')
 
-	if (if404(keys.length == 0, res)) return;
+		ids.forEach(function(id) {
+			types.forEach(function(type) {
+				if (type == 'total') {
+					keys.push(conf.redis.keyPrefix.total + id)
+				} else if (type == 'total-uniq') {
+					keys.push(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.total + id)
+				} else if (type == 'today') {
+					keys.push(conf.redis.keyPrefix.byDay + getToday() + id)
+				} else if (type == 'today-uniq') {
+					keys.push(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay + getToday() + id)
+				} else if (type == 'week') {
+					keys.push(getWeek(conf.redis.keyPrefix.byDay, id))
+				} else if (type == 'week-uniq') {
+					keys.push(getWeek(conf.redis.keyPrefix.uniq + conf.redis.keyPrefix.byDay, id))
+				} else {
+					throw 'Unknown type "' + type + '"'
+				}
 
-	var multi = redis.multi();
-	keys.forEach(function(row) {
-		var name = row[0];
-		var prefix = row[1];
-		if (prefix instanceof Array) {
-			multi.mget.apply(multi, prefix);
-		} else {
-			multi.get(prefix);
-		}
-	});
-	
-	multi.exec(function(err, values) {
-		var result = {};
-		if (values.length == keys.length) {
-			if (values.length == 1) {
-				result = values[0];
-			} else {
-				values.forEach(function(value, i) {
-					result[keys[i][0]] = value;
-				});
-			}
-		}
-		if (result instanceof Array || result instanceof Object) {
-			result = JSON.stringify(result);
-		}
-		if (query.jsonp_callback) {
-			res.writeHead(200, {'Content-type': 'application/x-javascript'});
-			res.end(query.jsonp_callback + '(\'' + result + '\');');
-		} else {
-			res.writeHead(200, {'Content-type': 'text/plain'});
-			res.end(result);
-		}
+			})
+		})
 		
-	});
-}).listen(conf.interface.port, conf.interface.host);
-
-function if404(expr, res) {
-	if (expr) {
-		res.writeHead(404, {'Content-type': 'text/plain'});
-		res.end('not found');
+		var multi = redis.multi()
+		keys.forEach(function(key) {
+			if (key instanceof Array) {
+				multi.mget.apply(multi, key)
+			} else {
+				multi.get(key)
+			}
+		})
+		
+		multi.exec(function(err, values) {
+			var result = {}
+			if (values.length != keys.length) {
+				throw "Unknown"
+			}
+			if (ids.length == 1) {
+				if (values.length == 1) {
+					result = formatValue(values[0])
+				} else {
+					values.forEach(function(value, i) {
+						result[types[i]] = formatValue(value)
+					})
+				}
+			} else {
+				if (ids.length == values.length) {
+					values.forEach(function(value, i) {
+						result[ids[i]] = formatValue(value)
+					})
+				} else {
+					ids.forEach(function(id, i) {
+						types.forEach(function(type, j) {
+							if (!result[id]) {
+								result[id] = {}
+							}
+							result[id][type] = formatValue(values[i*types.length+j])
+						})
+					})
+				}
+			}
+			
+			if (result instanceof Array || result instanceof Object) {
+				result = JSON.stringify(result)
+			}
+			if (query.jsonp_callback) {
+				res.writeHead(200, {'Content-type': 'application/x-javascript'})
+				res.end(query.jsonp_callback + '(\'' + result + '\')')
+			} else {
+				res.writeHead(200, {'Content-type': 'text/plain'})
+				res.end(result)
+			}
+			
+		})
+	} catch(err) {
+		res.writeHead(403, {'Content-type': 'text/plain'})
+		res.end('Error: ' + err)
 	}
-	return expr;
-}
+}).listen(conf.interface.port, conf.interface.host)
+
 
 function getToday() {
-	return Date.today().toString('yyyy-MM-dd') + ':';
+	return Date.today().toString('yyyy-MM-dd') + ':'
 }
 
 function getWeek(prefix, postfix) {
-	var ret = [];
+	var ret = []
 	for (var i = 0; i > -7; i--) {
-		ret.push([prefix + Date.today().add(i).days().toString('yyyy-MM-dd') + ':' + postfix]);
+		ret.push([prefix + Date.today().add(i).days().toString('yyyy-MM-dd') + ':' + postfix])
 	}
-	return ret;
+	return ret
+}
+
+function formatValue(val) {
+	if (val instanceof Array) {
+		val.forEach(function(value, index) {
+			val[index] = formatValue(value)
+		})
+	} else {
+		val = parseInt(val)
+		if (!val) {
+			val = 0
+		}
+	}
+	return val
 }
