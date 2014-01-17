@@ -75,13 +75,30 @@ http.createServer(function (req, res) {
 				}
 			}
 
-			result = JSON.stringify(result)
+			
 			if (query.jsonp_callback) {
 				res.writeHead(200, {'Content-type': 'application/x-javascript'})
-				res.end(query.jsonp_callback + '(\'' + result + '\')')
+				res.end(query.jsonp_callback + '(\'' + JSON.stringify(result) + '\')')
+			} else if (query.format && (query.format.toLowerCase() == 'json')) {
+				res.writeHead(200, {'Content-type': 'application/json'})
+				res.end(JSON.stringify(result))
 			} else {
-				res.writeHead(200, {'Content-type': 'text/plain'})
-				res.end(result)
+				res.writeHead(200, {'Content-type': 'text/html'})
+				res.write('<html><body><table><tr>')
+				res.write('<th>ID</th>')
+				types.forEach(function(type) {
+					res.write('<th>' + type + '</th>')
+				})
+				res.write("</tr>")
+				for (var id in result) {
+					res.write('<tr><th>' + id + '</th>')
+					var idResult = result[id]
+					for (var col in idResult) {
+						res.write('<td>' + idResult[col] + '</td>')
+					}
+					res.write('</tr>')
+				}
+				res.end('</table></body></html>')
 			}
 			
 		})
